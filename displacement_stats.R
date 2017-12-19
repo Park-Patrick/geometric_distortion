@@ -72,7 +72,7 @@ for (i in 1:nSubj)
 #########################################################################################
   wilcox_disp_p_vol <- array(0, vol_dim) # set to zeros by default
   wilcox_disp_p_vol <- ffapply( AFUN=f <- function(x) {
-                                            as.numeric(wilcox.test(x, mu = 1.0, alternative="greater", paired=FALSE)$p.value)
+                                            as.numeric(wilcox.test(x, mu = 0.7, alternative="greater", paired=FALSE)$p.value)
                                           }, X = ff_disp, MARGIN = c(1,2,3), RETURN = TRUE)
   wilcox_disp_nii <- atlas_nii
   wilcox_disp_nii@.Data <- wilcox_disp_p_vol[]
@@ -125,14 +125,14 @@ for (i in 1:nSubj) { # compute mean for each subject and each label
 # image(ff_label_mean[]) # show heat map of different labels
 for (j in 1:num_labels) {
   print(j)
-  t <- t.test(ff_label_mean[j,], mu = 1, alternative = 'greater' , paired=FALSE)
+  t <- t.test(ff_label_mean[j,], mu = 0.7, alternative = 'greater' , paired=FALSE)
     df_lobes$mean[j] <- mean(ff_label_mean[j,])
     df_lobes$stdev[j] <- sd(ff_label_mean[j,])
     df_lobes$lowCI[j] <- t$conf.int[1]
     df_lobes$highCI[j] <- t$conf.int[2]
     df_lobes$t_stat[j] <- t$statistic
     df_lobes$t_pval[j] <- t$p.value
-  w <- wilcox.test(ff_label_mean[j,], mu = 1, alternative = 'greater', paired=FALSE)
+  w <- wilcox.test(ff_label_mean[j,], mu = 0.7, alternative = 'greater', paired=FALSE)
     df_lobes$w_vval[j] <- w$statistic
     df_lobes$w_pval[j] <- w$p.value
 }
@@ -171,16 +171,94 @@ for (i in 1:nSubj) { # compute mean for each subject and each label
 # image(ff_label_mean[]) # show heat map of different labels
 for (j in 1:num_labels) {
   print(j)
-  t <- t.test(ff_label_mean[j,], mu = 1, alternative="greater", paired=FALSE)
+  t <- t.test(ff_label_mean[j,], mu = 0.7, alternative="greater", paired=FALSE)
     df_HO$mean[j] <- mean(ff_label_mean[j,])
     df_HO$stdev[j] <- sd(ff_label_mean[j,])
     df_HO$lowCI[j] <- t$conf.int[1]
     df_HO$highCI[j] <- t$conf.int[2]
     df_HO$t_stat[j] <- t$statistic
     df_HO$t_pval[j] <- t$p.value
-  w <- wilcox.test(ff_label_mean[j,], mu = 1, alternative="greater", paired=FALSE)
+  w <- wilcox.test(ff_label_mean[j,], mu = 0.7, alternative="greater", paired=FALSE)
     df_HO$w_vval[j] <- w$statistic
     df_HO$w_pval[j] <- w$p.value
 }
 # export table to file
 write.table(df_HO, '/home/jlau/khangrp/users/ppark/OHBM_dbm/stats/HarvardOxford-combined-HO-stats.csv', sep = ",", quote = FALSE, row.names = FALSE)
+
+#############################################################################################################
+
+# perform again for full set of Cerebellum labels
+# /usr/share/fsl/5.0/data/atlases/Cerebellum/Cerebellum-MNIfnirt-maxprob-thr25-1mm.nii.gz
+# xml label file: /usr/share/fsl/5.0/data/atlases/Cerebellum_MNIfnirt.xml
+ROI_cerebellum_path <- '/usr/share/fsl/5.0/data/atlases/Cerebellum/Cerebellum-MNIfnirt-maxprob-thr25-1mm.nii.gz'
+ROI_cerebellum_nii <- readNIfTI2(ROI_cerebellum_path)
+num_labels <- range(ROI_cerebellum_nii@.Data)[2] # 0...27
+
+df_cerebellum <- read.table('~/khangrp/projects/unsorted/test_geo_dbm/FSLCerebellum-combined-NetworkLabelList_fullname.csv', header=TRUE, sep=',')
+
+# initialize csv files
+df_cerebellum$mean <- rep(0,num_labels)
+df_cerebellum$stdev <- rep(0,num_labels)
+df_cerebellum$lowCI <- rep(0,num_labels)
+df_cerebellum$highCI <- rep(0,num_labels)
+df_cerebellum$t_stat <- rep(0,num_labels)
+df_cerebellum$t_pval <- rep(0,num_labels)
+df_cerebellum$w_vval <- rep(0,num_labels)
+df_cerebellum$w_pval <- rep(0,num_labels)
+
+ff_label_mean <- ff(0, dim=c(num_labels,nSubj) ) # ff makes it more memory efficient (probably could be optimized further)
+
+for (i in 1:nSubj) { # compute mean for each subject and each label
+  
+  temp_vol <- ff_disp[,,,i]
+  for (j in 1:num_labels) {
+    #hist(temp_vol[ ROI_cerebellum_lobes_nii@.Data == j ] # other details about data if necessary
+    ff_label_mean[j,i] <- mean(temp_vol[ ROI_cerebellum_nii@.Data == j ])
+  }
+}
+# image(ff_label_mean[]) # show heat map of different labels
+for (j in 1:num_labels) {
+  print(j)
+  t <- t.test(ff_label_mean[j,], mu = 0.7, alternative="greater", paired=FALSE)
+  df_cerebellum$mean[j] <- mean(ff_label_mean[j,])
+  # df_cerebellum$stdev[j] <- sd(ff_label_mean[j,])
+  df_cerebellum$lowCI[j] <- t$conf.int[1]
+  df_cerebellum$highCI[j] <- t$conf.int[2]
+  df_cerebellum$t_stat[j] <- t$statistic
+  df_cerebellum$t_pval[j] <- t$p.value
+  w <- wilcox.test(ff_label_mean[j,], mu = 0.7, alternative="greater", paired=FALSE)
+  df_cerebellum$w_vval[j] <- w$statistic
+  df_cerebellum$w_pval[j] <- w$p.value
+}
+# export table to file
+write.table(df_cerebellum, '/home/jlau/khangrp/users/ppark/OHBM_dbm/stats/FSL-combined-cerebellum-stats.csv', sep = ",", quote = FALSE, row.names = FALSE)
+
+
+##################################################################################################################
+# Now for the whole cerebellum label
+ROI_whole_cerebellum_path <- '/home/jlau/khangrp/users/ppark/OHBM_dbm/atlas/Cerebellum-MNIfnirt-maxprob-thr25-1mm_bin.nii.gz'
+ROI_whole_cerebellum_nii <- readNIfTI2(ROI_whole_cerebellum_path)
+num_labels <- range(ROI_whole_cerebellum_nii@.Data)[2] # 1 whole whole_cerebellum label
+
+label_mean <- rep(0, c(nSubj) ) # ff makes it more memory efficient (probably could be optimized further)
+
+for (i in 1:nSubj) { # compute mean for each subject and each label
+  
+  temp_vol <- ff_disp[,,,i]
+  label_mean[i] <- mean(temp_vol[ ROI_whole_cerebellum_nii@.Data == 1 ])
+}
+
+t.test(label_mean, mu = 0.7, alternative="greater", paired=FALSE)
+mean(label_mean)
+t$conf.int[1]
+t$conf.int[2]
+t$statistic
+t$p.value
+w <- wilcox.test(label_mean, mu = 0.7, alternative="greater", paired=FALSE)
+w$statistic
+w$p.value
+# Not significantly different across the whole cerebellum
+# 
+
+df_cerebellum[df_cerebellum$w_pval < 0.05,c("name","side","mean","stdev")]
+df_HO[grep("*occipital*", df_HO$name),c("name","side","mean","stdev")]
