@@ -17,7 +17,10 @@ library(ffbase)
 library(ggplot2)
 
 # TODO
+# Reading in comma seperated file, asign to variable df
 df <- read.csv('~/khangrp/users/ppark/OHBM_dbm/subjects_temp.tsv', header = FALSE, sep = ',' )
+
+# Sets the first column name. 
 names(df)[1] <- 'subjid'
 
 # read in nlin_displacement files that are warped into standard space
@@ -28,15 +31,19 @@ atlas_nii <- readNIfTI2(atlas_path)
 atlas_mask_path <- '/eq-nas/jlau/EpilepsyDatabase/standard/projects/atlases/MNI152_1mm/t1/brainmask.nii.gz'
 mask_nii <- readNIfTI2(atlas_mask_path)
 
+# Dynamically create file paths based on subject number from df
 df$mni_disp_path <- sprintf('/home/jlau/khangrp/users/ppark/OHBM_dbm/sub-%s/subj_MNI_displacement_nlin_1mm.nii.gz', df$subjid)
 #df$mni_ljac_path <- sprintf('/eq-nas/jlau/EpilepsyDatabase/Projects/test_geo_dbm/%s/Preop/Processed/MetricsToMNI/subj_MNI_log_jacobian_nlin_1mm.nii.gz', df$subjid)
 
+# Get number of rows in df
 nSubj <- length(df[,1]);
 
+# Calling feature of nifti file using @ method. Get 3D dimensions
 vol_dim <- dim(atlas_nii@.Data)
 
-ff_disp <- ff(0, dim=c(vol_dim,nSubj) ) # ff makes it more memory efficient (probably could be optimized further)
+ff_disp <- ff(0, dim=c(vol_dim, nSubj) ) # ff makes it more memory efficient (probably could be optimized further)
 
+# Loop over all subjects, read in mni displacement, append data to ff_disp to 4th dimension
 for (i in 1:nSubj)
 {
   current_disp_nii <- readNIfTI2(df$mni_disp_path[i])
